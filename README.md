@@ -1,8 +1,8 @@
 ## Check Power BI Dataset Source
 
-The script will help PBI admins to check the DB dependencies for the datsets used in PowerBI
-The script will save the data in current working directory with name PBIDatasetSources.csv
-Currently only following datasource check has been added
+The script will help PBI admins to check the DB dependencies of datasets used in PowerBI. The script will save the data in current working directory with name PBIDatasetSources.csv
+
+As of now only following datasource check are added
 - Salesforce
 - Oracle
 - Folder
