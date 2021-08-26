@@ -11,52 +11,44 @@ cls
 
 #and comment the below line
 
-$allworkspace = Get-PowerBIWorkspace -All -Scope Organization
+$allworkspace = Get-PowerBIWorkspace -All
 
 function CheckConnectionString(){
     $datasrc = $args[2]
     $datasetname = $args[1]
     $workspacename = $args[0]
+    $fileentry = [pscustomobject]@{
+            WorkspaceName = $workspacename
+            DatasetName = $datasetname
+            SourceType = $datasrc.datasourcetype
+        }
     Switch ($datasrc.datasourceType){
         'Oracle' {
-            $fileentry = [pscustomobject]@{
-            WorkspaceName = $workspacename
-            DatasetName = $datasetname
-            sourcetype = $datasrc.datasourceType
-            connectionstring = ($datasrc.connectionDetails).server
-            }
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue ($datasrc.connectionDetails).server
         }
         'Folder' {
-            $fileentry = [pscustomobject]@{
-            WorkspaceName = $workspacename
-            DatasetName = $datasetname
-            sourcetype = $datasrc.datasourceType
-            connectionstring = ($datasrc.connectionDetails).Path
-            }
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue ($datasrc.connectionDetails).Path
         }
         'SAPHana' {
-            $fileentry = [pscustomobject]@{
-            WorkspaceName = $workspacename
-            DatasetName = $datasetname
-            sourcetype = $datasrc.datasourceType
-            connectionstring = ($datasrc.connectionDetails).server
-            }
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue ($datasrc.connectionDetails).server
         }
         'Sql' {
-            $fileentry = [pscustomobject]@{
-            WorkspaceName = $workspacename
-            DatasetName = $datasetname
-            sourcetype = $datasrc.datasourceType
-            connectionstring = ($datasrc.connectionDetails).server
-            }
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue ($datasrc.connectionDetails).server
         }
         'Salesforce' {
-            $fileentry = [pscustomobject]@{
-            WorkspaceName = $workspacename
-            DatasetName = $datasetname
-            sourcetype = $datasrc.datasourceType
-            connectionstring = $datasrc.connectionDetails.loginServer
-            }
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.loginServer 
+        }
+        'SharePointList' {
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.url 
+        }
+        'Web' {
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.url 
+        }
+        'Extension' {
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.path 
+        }
+        'Exchange' {
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.emailAddress 
         }
     }
     $fileentry | Export-Csv -Path PBIDatasetSources.csv -Append -NoTypeInformation -NoClobber
@@ -64,14 +56,11 @@ function CheckConnectionString(){
 
 $allworkspace | %{
     $wrkspacename = $_.Name
-    Write-Host "Checking Workspace :"$_.Name $_.Id 
+    Write-Host "Checking Workspace :"$_.Name $_.Id `n -ForegroundColor Yellow
     $datsets = Get-PowerBIDataset -WorkspaceId $_.Id
 
     foreach ($d in $datsets){
-
-        if($d.IsOnPremGatewayRequired -eq 'True') {
-
-            Write-Host "Checking datset connection :"$d.Id,$d.Name `n
+            Write-Host "Checking datset connection :"$d.Id,$d.Name -ForegroundColor Cyan
             $gatewaydetails = (Invoke-PowerBIRestMethod -Method GET -Url "groups/$($_.Id)/datasets/$($d.Id)/Datasources" | ConvertFrom-Json).value 
             $datasetsources= $gatewaydetails | Select-Object datasourceType,connectionDetails
             if ($datasetsources.count -ge 2){
@@ -80,9 +69,12 @@ $allworkspace | %{
                 }
 
             }else{
-               CheckConnectionString $wrkspacename $d.Name $datasetsources    
+                if ($datasetsources) {
+                    CheckConnectionString $wrkspacename $d.Name $datasetsources
+                }else{
+                    Write-Host 'No datasource found' -ForegroundColor Red
+                }
             }
-        }
+        Write-Host
     }
-    Write-Host `n
 }
