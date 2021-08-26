@@ -59,7 +59,7 @@ function CheckConnectionString(){
             }
         }
     }
-    $fileentry | Export-Csv -Path checksourcewithfunction.csv -Append -NoTypeInformation -NoClobber
+    $fileentry | Export-Csv -Path PBIDatasetSources.csv -Append -NoTypeInformation -NoClobber
 }
 
 $allworkspace | %{
