@@ -1,26 +1,53 @@
-cls
-
-﻿Login-PowerBI
-
-# To intially test for one workspace uncomment the following lines and updated the workspace id and name
-
-#$allworkspace = [PSCustomObject]@{
-#id = '01234567-89ab-cdef-0123-456789abcdef'
-#Name ='Test Workspace'
-#}
-
-#and comment the below line
-
-$allworkspace = Get-PowerBIWorkspace -All
+#First authenticate to Power BI service using Login-PowerBI
+Param(
+    [Parameter()]
+    [String]$WorkspaceId,
+    [Parameter()]
+    [switch]$CheckAllWorkspaces,
+    [Parameter()]
+    [switch]$exporttofile,
+    [Parameter()]
+    [String]$filename='PBIDatasetSources.csv',
+    [Parameter()]
+    [String]$WorkspaceName
+)
+if ($CheckAllWorkspaces.IsPresent){
+    Write-Host 'Checking for all the workspaces'`n 'WorkspaceID if provided will be discarded' -ForegroundColor Yellow
+    #$allworkspace = Get-PowerBIWorkspace -All
+    Write-Host 'all workspace'
+}else{
+    if ($WorkspaceId){
+        Write-Host 'Checking for all dataset for workspaceid:' $WorkspaceId -ForegroundColor Cyan
+        if ($WorkspaceName) {
+            $allworkspace = [PSCustomObject]@{
+            id = $WorkspaceId
+            Name =$WorkspaceName
+            }
+        }else{
+            Write-Host "Workspace name not provided, will be putting workspace name as NA" -ForegroundColor Yellow
+            $allworkspace = [PSCustomObject]@{
+            id = $WorkspaceId
+            Name ='NA'
+            }
+        }
+    }else{
+        Write-Host "WorkspaceID not provided, exiting the process..." -ForegroundColor Red
+        exit;
+    }
+}
+if($exporttofile.IsPresent){
+    Write-Host "Result will be exported in" $filename -ForegroundColor Green
+    $showdisplay = 0
+}else{
+    Write-Host "Result will be displayed on screen" -ForegroundColor Green
+    $showdisplay= 1
+}
 
 function CheckConnectionString(){
-    $datasrc = $args[2]
-    $datasetname = $args[1]
-    $workspacename = $args[0]
     $fileentry = [pscustomobject]@{
-            WorkspaceName = $workspacename
-            DatasetName = $datasetname
-            SourceType = $datasrc.datasourcetype
+            WorkspaceName = $args[0]
+            DatasetName = $args[1]
+            SourceType = $args[2].datasourcetype
         }
     Switch ($datasrc.datasourceType){
         'Oracle' {
@@ -51,7 +78,11 @@ function CheckConnectionString(){
             $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.emailAddress 
         }
     }
-    $fileentry | Export-Csv -Path PBIDatasetSources.csv -Append -NoTypeInformation -NoClobber
+    if ($args[3] -eq 1){
+        $fileentry
+    }else{
+        $fileentry | Export-Csv -Path PBIDatasetSources.csv -Append -NoTypeInformation -NoClobber
+    } 
 }
 
 $allworkspace | %{
@@ -65,12 +96,11 @@ $allworkspace | %{
             $datasetsources= $gatewaydetails | Select-Object datasourceType,connectionDetails
             if ($datasetsources.count -ge 2){
                 foreach( $datasrc in $datasetsources){
-                    CheckConnectionString $wrkspacename $d.Name $datasrc
+                    CheckConnectionString $wrkspacename $d.Name $datasrc $showdisplay
                 }
-
             }else{
                 if ($datasetsources) {
-                    CheckConnectionString $wrkspacename $d.Name $datasetsources
+                    CheckConnectionString $wrkspacename $d.Name $datasetsources $showdisplay
                 }else{
                     Write-Host 'No datasource found' -ForegroundColor Red
                 }
