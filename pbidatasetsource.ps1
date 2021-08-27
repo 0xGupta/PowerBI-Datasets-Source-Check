@@ -5,16 +5,15 @@ Param(
     [Parameter()]
     [switch]$CheckAllWorkspaces,
     [Parameter()]
-    [switch]$exporttofile,
+    [switch]$ExportToFile,
     [Parameter()]
-    [String]$filename='PBIDatasetSources.csv',
+    [String]$FileName='PBIDatasetSources.csv',
     [Parameter()]
     [String]$WorkspaceName
 )
 if ($CheckAllWorkspaces.IsPresent){
     Write-Host 'Checking for all the workspaces'`n 'WorkspaceID if provided will be discarded' -ForegroundColor Yellow
-    #$allworkspace = Get-PowerBIWorkspace -All
-    Write-Host 'all workspace'
+    $allworkspace = Get-PowerBIWorkspace -All
 }else{
     if ($WorkspaceId){
         Write-Host 'Checking for all dataset for workspaceid:' $WorkspaceId -ForegroundColor Cyan
@@ -49,39 +48,39 @@ function CheckConnectionString(){
             DatasetName = $args[1]
             SourceType = $args[2].datasourcetype
         }
-    Switch ($datasrc.datasourceType){
+    Switch ($args[2].datasourceType){
         'Oracle' {
-            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue ($datasrc.connectionDetails).server
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.server
         }
         'Folder' {
-            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue ($datasrc.connectionDetails).Path
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.Path
         }
         'SAPHana' {
-            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue ($datasrc.connectionDetails).server
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.server
         }
         'Sql' {
-            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue ($datasrc.connectionDetails).server
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.server
         }
         'Salesforce' {
-            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.loginServer 
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.loginServer 
         }
         'SharePointList' {
-            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.url 
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.url 
         }
         'Web' {
-            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.url 
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.url 
         }
         'Extension' {
-            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.path 
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.path 
         }
         'Exchange' {
-            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $datasrc.connectionDetails.emailAddress 
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.emailAddress 
         }
     }
     if ($args[3] -eq 1){
         $fileentry
     }else{
-        $fileentry | Export-Csv -Path PBIDatasetSources.csv -Append -NoTypeInformation -NoClobber
+        $fileentry | Export-Csv -Path $args[4] -Append -NoTypeInformation -NoClobber
     } 
 }
 
@@ -91,16 +90,16 @@ $allworkspace | %{
     $datsets = Get-PowerBIDataset -WorkspaceId $_.Id
 
     foreach ($d in $datsets){
-            Write-Host "Checking datset connection :"$d.Id,$d.Name -ForegroundColor Cyan
+            Write-Host "Checking datset connection :$($d.Name) [ $($d.ID) ]" -ForegroundColor Cyan
             $gatewaydetails = (Invoke-PowerBIRestMethod -Method GET -Url "groups/$($_.Id)/datasets/$($d.Id)/Datasources" | ConvertFrom-Json).value 
             $datasetsources= $gatewaydetails | Select-Object datasourceType,connectionDetails
             if ($datasetsources.count -ge 2){
                 foreach( $datasrc in $datasetsources){
-                    CheckConnectionString $wrkspacename $d.Name $datasrc $showdisplay
+                    CheckConnectionString $wrkspacename $d.Name $datasrc $showdisplay $FileName
                 }
             }else{
                 if ($datasetsources) {
-                    CheckConnectionString $wrkspacename $d.Name $datasetsources $showdisplay
+                    CheckConnectionString $wrkspacename $d.Name $datasetsources $showdisplay $FileName
                 }else{
                     Write-Host 'No datasource found' -ForegroundColor Red
                 }
