@@ -76,6 +76,33 @@ function CheckConnectionString(){
         'Exchange' {
             $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.emailAddress 
         }
+        'SAPBWMessageServer' {
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.server 
+        }
+        'OData'{
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.url 
+        }
+        'File'{
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.path 
+        }
+        'AnalysisServices'{
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.server 
+        }
+        'ActiveDirectory'{
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.domain 
+        }
+        'GoogleAnalytics'{
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.path 
+        }
+        'OleDb'{
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.connectionString 
+        }
+        'ODBC'{
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.connectionString 
+        }
+        default{
+            $fileentry | Add-Member -NotePropertyName connectionstring -NotePropertyValue $args[2].connectionDetails.server 
+        }
     }
     if ($args[3] -eq 1){
         $fileentry
